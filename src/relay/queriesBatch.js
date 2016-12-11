@@ -4,7 +4,11 @@ export default function queriesBatch(relayRequestList, fetchWithMiddleware) {
   const requestMap = {};
   relayRequestList.forEach((req) => {
     const reqId = req.getID();
-    requestMap[reqId] = req;
+    if (reqId in requestMap) {
+      requestMap[reqId].push(req);
+    } else {
+      requestMap[reqId] = [req];
+    }
   });
 
   const req = {
@@ -21,20 +25,22 @@ export default function queriesBatch(relayRequestList, fetchWithMiddleware) {
   req.body = JSON.stringify(
     Object.keys(requestMap).map((id) => ({
       id,
-      query: requestMap[id].getQueryString(),
-      variables: requestMap[id].getVariables(),
+      query: requestMap[id][0].getQueryString(),
+      variables: requestMap[id][0].getVariables(),
     }))
   );
 
   return fetchWithMiddleware(req)
     .then(payloadList => {
       payloadList.forEach(({ id, payload }) => {
-        const relayRequest = requestMap[id];
-        if (relayRequest) {
-          queryPost(
-            relayRequest,
-            new Promise(resolve => { resolve(payload); })
-          );
+        const relayRequests = requestMap[id];
+        if (relayRequests) {
+          relayRequests.forEach((relayRequest) => {
+            queryPost(
+              relayRequest,
+              new Promise(resolve => { resolve(payload); })
+            );
+          });
         }
       });
     }).catch(e => {
