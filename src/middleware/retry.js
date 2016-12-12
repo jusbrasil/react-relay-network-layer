@@ -98,12 +98,10 @@ export default function retryMiddleware(opts = {}) {
           return res;
         })
         .catch(err => {
-          if (err === timeoutError) {
-            const retryDelayMS = retryAfterMs(attempt);
-            if (retryDelayMS) {
-              logger(`response timeout, retrying after ${retryDelayMS} ms`);
-              return sendTimedRequest(timeout, retryDelayMS);
-            }
+          const retryDelayMS = retryAfterMs(attempt);
+          if (retryDelayMS) {
+            logger(`response timeout, retrying after ${retryDelayMS} ms`);
+            return sendTimedRequest(timeout, retryDelayMS);
           }
 
           return new Promise((resolve, reject) => reject(err));
